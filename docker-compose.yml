@@ -2,6 +2,7 @@ services:
   springboot-app:  # 서비스 이름 (컨테이너 역할 명시)
     image: ${DOCKER_USERNAME}/jwt-app:latest  # 사용할 도커 이미지. GitHub Actions에서 푸시한 최신 버전 사용
     container_name: jwt_app  # 실제 생성될 컨테이너의 이름 지정
+    restart: unless-stopped  # DB 준비가 늦어 앱이 종료되어도 자동 재시도
 
     ports:
       - "8080:8080"  # 호스트의 8080 포트를 컨테이너의 8080 포트에 매핑 (외부에서 접속 가능)
