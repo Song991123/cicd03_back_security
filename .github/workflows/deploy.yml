@@ -38,24 +38,6 @@ jobs:
       - name: Docker 이미지 푸시
         run: docker push ${{ secrets.DOCKER_USERNAME }}/jwt-app:latest  # 빌드한 이미지를 Docker Hub에 업로드
 
-      # .env 파일을 Actions 내에서 동적으로 생성
-      - name: .env 파일 생성
-        run: |
-          echo "SPRING_JWT_SECRET=${{ secrets.SPRING_JWT_SECRET }}" >> .env  # Spring JWT 시크릿 키
-          echo "MYSQL_URL=jdbc:mysql://mysql_db:3306/jwt_db?characterEncoding=UTF-8" >> .env  # DB URL: Docker network MySQL
-          echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env  # DB 사용자명
-          echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env  # DB 비밀번호
-          echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env  # 도커 허브 사용자명
-
-      - name: EC2에 docker-compose.yml + .env 전송
-        uses: appleboy/scp-action@v0.1.7  # EC2로 파일 전송하는 액션(SCP 방식)
-        with:
-          host: ${{ secrets.EC2_HOST }}  # EC2 호스트 주소
-          username: ${{ secrets.EC2_USERNAME }}  # EC2 사용자명 (보통 ubuntu)
-          key: ${{ secrets.EC2_PRIVATE_KEY }}  # EC2 개인 키 (.pem 내용)
-          source: "docker-compose.yml,.env"  # 전송할 파일 목록 (쉼표로 구분)
-          target: "~/cicd-docker"  # EC2 내 대상 경로
-
       - name: EC2에서 docker-compose 실행
         uses: appleboy/ssh-action@v1.0.0  # EC2에 SSH 접속하여 명령 실행
         with:
@@ -63,7 +45,36 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
+            mkdir -p ~/cicd-docker
             cd ~/cicd-docker  # 도커 파일이 위치한 경로로 이동
+            cat > .env <<EOF
+            SPRING_JWT_SECRET=${{ secrets.SPRING_JWT_SECRET }}
+            MYSQL_URL=jdbc:mysql://mysql_db:3306/jwt_db?characterEncoding=UTF-8
+            MYSQL_USER=${{ secrets.MYSQL_USER }}
+            MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            EOF
+            cat > docker-compose.yml <<'EOF'
+            services:
+              springboot-app:
+                image: ${DOCKER_USERNAME}/jwt-app:latest
+                container_name: jwt_app
+                restart: unless-stopped
+                ports:
+                  - "8080:8080"
+                environment:
+                  SPRING_JWT_SECRET: ${SPRING_JWT_SECRET}
+                  MYSQL_URL: ${MYSQL_URL}
+                  MYSQL_USER: ${MYSQL_USER}
+                  MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+                  JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Seoul -Dfile.encoding=UTF-8"
+                  SPRING_PROFILES_ACTIVE: prod
+                networks:
+                  - mynet
+            networks:
+              mynet:
+                external: true
+            EOF
             for i in 1 2 3; do
               docker pull ${{ secrets.DOCKER_USERNAME }}/jwt-app:latest && break
               if [ "$i" = "3" ]; then exit 1; fi
