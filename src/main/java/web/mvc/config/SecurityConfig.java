@@ -60,10 +60,8 @@ public class SecurityConfig {
                         configuration.setAllowedOrigins(Arrays.asList(
                                 "http://43.201.113.236",
                                 "http://43.201.113.236:80",
-                                "http://heejung.n-e.kr",
-                                "https://heejung.n-e.kr",
-                                "http://boot.heejung.n-e.kr",
-                                "https://boot.heejung.n-e.kr"
+                                "http://sjhkosta.kro.kr/",
+                                "https://sjhkosta.kro.kr/"
                         ));
                         configuration.setAllowedMethods(Collections.singletonList("*"));
                         configuration.setAllowCredentials(true);
