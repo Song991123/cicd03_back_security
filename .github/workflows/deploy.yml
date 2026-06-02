@@ -64,7 +64,11 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd ~/cicd-docker  # 도커 파일이 위치한 경로로 이동
-            docker pull ${{ secrets.DOCKER_USERNAME }}/jwt-app:latest  # 최신 이미지 가져오기
+            for i in 1 2 3; do
+              docker pull ${{ secrets.DOCKER_USERNAME }}/jwt-app:latest && break
+              if [ "$i" = "3" ]; then exit 1; fi
+              sleep 15
+            done  # 최신 이미지 가져오기: Docker Hub TLS timeout 대비 재시도
             docker compose down  # 기존 컨테이너 종료
             docker compose up -d  # 백그라운드로 새 컨테이너 실행
             sleep 90  # Spring Boot와 DB 연결 초기화 대기
