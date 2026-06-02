@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +18,20 @@ public class JWTFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
     public JWTFilter(JWTUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        String method = request.getMethod();
+
+        return "/test".equals(path)
+                || "/login".equals(path)
+                || path.startsWith("/members")
+                || (HttpMethod.GET.matches(method)
+                    && ("/boards".equals(path)
+                        || "/boardsTest".equals(path)
+                        || path.startsWith("/boards/")));
     }
 
     @Override
